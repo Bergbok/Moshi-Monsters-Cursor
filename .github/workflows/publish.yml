@@ -1,0 +1,152 @@
+name: Publish
+run-name: Publish ${{ github.ref_name }}
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.0
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2.0.2
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Pack
+        run: bun pm pack
+
+      - name: Upload build archive
+        uses: actions/upload-artifact@v5.0.0
+        with:
+          name: build
+          path: iggy-cursor-*.tgz
+  npm:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v6.0.0
+        with:
+          name: build
+          path: build
+
+      - name: Check remote
+        id: check_remote
+        run: |
+          cd build || exit 1
+          tar -xzf iggy-cursor-*.tgz
+          VERSION=${GITHUB_REF_NAME#v}
+          if npm add "iggy-cursor@${VERSION}" >/dev/null 2>&1; then
+            echo "exists=true" > $GITHUB_OUTPUT
+            echo "Version ${VERSION} of iggy-cursor is already published to npm. Skipping."
+          else
+            echo "exists=false" > $GITHUB_OUTPUT
+            echo "Version ${VERSION} of iggy-cursor is not published yet."
+          fi
+
+      - name: Setup node
+        uses: actions/setup-node@v6.0.0
+        if: steps.check_remote.outputs.exists == 'false'
+        with:
+          node-version: '*'
+          registry-url: https://registry.npmjs.org
+
+      # Ensure npm 11.5.1 or later is installed to enable trusted publishing
+      # https://docs.npmjs.com/trusted-publishers
+      - name: Update npm
+        if: steps.check_remote.outputs.exists == 'false'
+        run: npm install -g npm@latest
+
+      - name: Publish
+        if: steps.check_remote.outputs.exists == 'false'
+        run: npm publish ./build/iggy-cursor-*.tgz
+  github-packages:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      packages: write
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v6.0.0
+        with:
+          name: build
+          path: build
+
+      - name: Check remote
+        id: check_remote
+        run: |
+          cd build || exit 1
+          tar -xzf iggy-cursor-*.tgz
+          VERSION=${GITHUB_REF_NAME#v}
+          if npm add "iggy-cursor@${VERSION}" --registry https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "exists=true" > $GITHUB_OUTPUT
+            echo "Version ${VERSION} of iggy-cursor is already published to GitHub Packages. Skipping."
+          else
+            echo "exists=false" > $GITHUB_OUTPUT
+            echo "Version ${VERSION} of iggy-cursor is not published yet."
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup node
+        uses: actions/setup-node@v6.0.0
+        if: steps.check_remote.outputs.exists == 'false'
+        with:
+          node-version: '*'
+          registry-url: https://npm.pkg.github.com
+
+      - name: Publish
+        if: steps.check_remote.outputs.exists == 'false'
+        run: |
+          npm config set registry=https://npm.pkg.github.com
+          cd build
+          tar -xzf iggy-cursor-*.tgz
+          cd package
+          npm pkg delete scripts.prepack
+          npm pkg delete scripts.postpack
+          npm pkg set name="@${GITHUB_REPOSITORY_OWNER}/iggy-cursor"
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  github-release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v6.0.0
+        with:
+          name: build
+          path: build
+
+      - name: Release
+        uses: softprops/action-gh-release@v2.4.2
+        with:
+          name: '${{ github.ref_name }}'
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
+          files: build/iggy-cursor-*.tgz
+          fail_on_unmatched_files: true
+          make_latest: true
