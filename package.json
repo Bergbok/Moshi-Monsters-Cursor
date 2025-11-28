@@ -1,0 +1,48 @@
+{
+	"name": "iggy-cursor",
+	"type": "module",
+	"version": "1.0.0",
+	"license": "GPL-3.0-only",
+	"description": "Cursor from Moshi Monsters",
+	"keywords": [
+		"cursor",
+		"gsap",
+		"flash",
+		"nostalgia"
+	],
+	"author": {
+		"name": "Tina Milosavljevic",
+		"url": "https://github.com/tinam02"
+	},
+	"repository": "github:Bergbok/Moshi-Monsters-Cursor",
+	"homepage": "https://github.com/Bergbok/Moshi-Monsters-Cursor",
+	"bugs": "https://github.com/Bergbok/Moshi-Monsters-Cursor/issues",
+	"files": [
+		"*.js",
+		"*.d.ts",
+		"assets"
+	],
+	"main": "cursor.js",
+	"types": "cursor.d.ts",
+	"prettier": "@bergbok/prettier-config",
+	"simple-git-hooks": {
+		"pre-commit": "bunx pretty-quick --staged"
+	},
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc --watch",
+		"postpack": "rm -r *.js *.d.ts assets types",
+		"prepack": "cp -r build/* . && cp types/* . && mkdir assets && cp src/assets/* assets",
+		"prettier": "prettier --write ."
+	},
+	"dependencies": {
+		"gsap": "^3.13.0"
+	},
+	"devDependencies": {
+		"@bergbok/prettier-config": "^1.1.0",
+		"prettier": "^3.7.1",
+		"pretty-quick": "^4.2.2",
+		"simple-git-hooks": "^2.13.1",
+		"typescript": "^5.9.3"
+	}
+}
