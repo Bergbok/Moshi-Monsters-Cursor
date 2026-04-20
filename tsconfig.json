@@ -18,6 +18,7 @@
 		"declarationDir": "build/types",
 		// "declarationMap": true,
 		"outDir": "build",
+		"rootDir": "src",
 
 		// JavaScript Support
 		"allowJs": true,
