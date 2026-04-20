@@ -1,3 +1,4 @@
-/node_modules/
 /build/
+/iggy-cursor-*/
+/node_modules/
 *.tgz
