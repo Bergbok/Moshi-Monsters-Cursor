@@ -2,10 +2,12 @@ import { gsap } from 'gsap';
 
 interface CursorOptions {
 	assetsBase?: string;
+	parent?: HTMLElement;
 }
 
 export function iggyCursor(options: CursorOptions = {}) {
 	const assetsBase = options.assetsBase || '/iggy/';
+	const parent = options.parent || document.body;
 
 	const images = [
 		'iggyright.avif',
@@ -37,7 +39,7 @@ export function iggyCursor(options: CursorOptions = {}) {
 		pointer-events: none;
 		z-index: 10001;
 	`;
-	document.body.appendChild(cursor);
+	parent.appendChild(cursor);
 
 	const follower = document.createElement('div');
 	follower.className = 'follower';
@@ -56,7 +58,7 @@ export function iggyCursor(options: CursorOptions = {}) {
 		pointer-events: none;
 		z-index: 10000;
 	`;
-	document.body.appendChild(follower);
+	parent.appendChild(follower);
 
 	function getPositionAtCenter(element: HTMLElement) {
 		const { top, left, width, height } = element.getBoundingClientRect();
